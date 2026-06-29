@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mi Auto</title>
+<style>
+body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0b1020;color:#fff;display:grid;place-items:center;padding:20px}
+.card{width:min(460px,100%);background:#1c2230;border-radius:24px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+h1{text-align:center;margin:0 0 8px}
+p{text-align:center;color:#cfd3dc}
+input{width:100%;padding:14px;border-radius:14px;border:1px solid #3a4254;background:#2a3140;color:#fff;margin:8px 0;box-sizing:border-box}
+button,label{display:block;width:100%;padding:16px;border:none;border-radius:16px;margin:10px 0;font-size:17px;font-weight:700;text-align:center;cursor:pointer;box-sizing:border-box}
+.save{background:#27c16f;color:#fff}.go{background:#4285F4;color:#fff}.clear{background:#555;color:#fff}
+label{background:#3b4252}
+#photo{display:none}img{display:none;width:100%;border-radius:14px;margin-top:10px}
+#status{margin-top:15px;background:#111827;padding:14px;border-radius:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🚗 Mi Auto</h1>
+<p>Guarda GPS, nivel, plaza y una foto.</p>
+
+<input id="level" placeholder="Nivel (-3)">
+<input id="spot" placeholder="Plaza (B127)">
+<input id="note" placeholder="Nota">
+
+<label for="photo">📷 Agregar foto</label>
+<input id="photo" type="file" accept="image/*" capture="environment">
+<img id="preview">
+
+<button class="save" onclick="guardar()">Guardar ubicación</button>
+<button class="go" onclick="ir()">Ir con Google Maps</button>
+<button class="clear" onclick="borrar()">Borrar datos</button>
+
+<div id="status"></div>
+</div>
+
+<script>
+const S=id=>document.getElementById(id);
+
+function estado(t){S("status").innerHTML=t;}
+
+function cargar(){
+["level","spot","note"].forEach(i=>S(i).value=localStorage[i]||"");
+if(localStorage.photo){S("preview").src=localStorage.photo;S("preview").style.display="block";}
+if(localStorage.lat){
+estado(`✅ <b>Auto guardado</b><br>🕒 ${localStorage.time}<br>${localStorage.level?`🅿️ Nivel: ${localStorage.level}<br>`:""}${localStorage.spot?`🚘 Plaza: ${localStorage.spot}<br>`:""}${localStorage.note?`📝 ${localStorage.note}<br>`:""}🎯 Precisión: ${localStorage.acc} m`);
+}else{
+estado("Aún no hay una ubicación guardada.");
+}
+}
+
+S("photo").onchange=e=>{
+const f=e.target.files[0];
+if(!f)return;
+const r=new FileReader();
+r.onload=()=>{
+localStorage.photo=r.result;
+S("preview").src=r.result;
+S("preview").style.display="block";
+};
+r.readAsDataURL(f);
+};
+
+function guardar(){
+navigator.geolocation.getCurrentPosition(p=>{
+localStorage.lat=p.coords.latitude;
+localStorage.lon=p.coords.longitude;
+localStorage.acc=Math.round(p.coords.accuracy);
+localStorage.time=new Date().toLocaleString("es-CL");
+localStorage.level=S("level").value;
+localStorage.spot=S("spot").value;
+localStorage.note=S("note").value;
+cargar();
+},()=>estado("No fue posible obtener la ubicación."),{enableHighAccuracy:true});
+}
+
+function ir(){
+if(!localStorage.lat){estado("Primero guarda la ubicación.");return;}
+location.href=`https://www.google.com/maps/dir/?api=1&destination=${localStorage.lat},${localStorage.lon}&travelmode=walking`;
+}
+
+function borrar(){
+["lat","lon","acc","time","level","spot","note","photo"].forEach(k=>localStorage.removeItem(k));
+S("preview").style.display="none";
+["level","spot","note"].forEach(i=>S(i).value="");
+cargar();
+}
+cargar();
+</script>
+</body>
+</html>
